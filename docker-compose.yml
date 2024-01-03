@@ -1,0 +1,78 @@
+version: '3.4'
+
+services:
+    orderapi:
+        image: ${DOCKER_REGISTRY-}orderapi
+        build:
+            context: .
+            dockerfile: OrderService/OrderApi/Dockerfile
+        depends_on:
+            mongodb:
+                condition: service_healthy
+
+    mongodb:
+        image: mongo
+        restart: always
+        healthcheck:
+            test: mongosh --eval 'db.runCommand("ping").ok'
+            interval: 15s
+            timeout: 15s
+            retries: 3
+        volumes:
+            - ./mongo-data:/data/db
+
+    productapi:
+        image: ${DOCKER_REGISTRY-}productapi
+        build:
+            context: .
+            dockerfile: ProductService/ProductsApi/Dockerfile
+
+    postgres-products:
+        image: postgres
+        restart: always
+        environment:
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+        volumes:
+            - ./postgres-products-data:/var/lib/postgresql/data
+
+    notificationapi:
+        image: ${DOCKER_REGISTRY-}notificationapi
+        restart: always
+        build:
+            context: .
+            dockerfile: NotificationService/NotificationApi/Dockerfile
+        depends_on:
+            rabbitmq:
+                condition: service_healthy
+
+    rabbitmq:
+        image: rabbitmq
+        restart: always
+        healthcheck:
+            test: rabbitmq-diagnostics -q ping
+            interval: 30s
+            timeout: 30s
+            retries: 3
+                
+    inventoryapi:
+        image: ${DOCKER_REGISTRY-}inventoryapi
+        build:
+            context: .
+            dockerfile: InventoryService/InventoryApi/Dockerfile
+
+    postgres-inventory:
+        image: postgres
+        restart: always
+        environment:
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+        volumes:
+            - ./postgres-inventory-data:/var/lib/postgresql/data
+
+    graphqlapi:
+        image: ${DOCKER_REGISTRY-}graphqlapi
+        build:
+            context: .
+            dockerfile: GraphqlService/GraphqlApi/Dockerfile
+
